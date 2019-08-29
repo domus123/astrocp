@@ -12,9 +12,14 @@ With astro you can control multiple autonomous systems at once in a endpoint and
   
 # Server side 
 
-The astro brains hold the job of receiving sensoring data from de clients and do all the heavy math.
+The astro brains hold the job of receiving sensoring data from multiples clients and do all the heavy math.
 
 # client side
 
 In the client size you have to collect the sensoring data and send to the server, while receiving back commands.
   
+# tests 
+
+* Multiple client logged on server and sending sensoring data. 
+* Response delay with big loads and lower loads.
+* Custom kalman filter and other equations test.
