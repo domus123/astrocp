@@ -2,7 +2,7 @@
 A brain for multiple agents
 
 
-# Especifications 
+# Specifications 
 Astro is a framework that can hold multiple autonomous agents and control they position in the same time.
 With astro you can control multiple autonomous systems at once in a endpoint and:
   * Create your custom sensoring/physical models and use on the go.
