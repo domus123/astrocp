@@ -2,7 +2,6 @@
 A brain for multiple agents
 
 
-
 # Especifications 
 Astro is a framework that can hold multiple autonomous agents and control they position in the same time.
 With astro you can control multiple autonomous systems at once in a endpoint and:
@@ -12,7 +11,7 @@ With astro you can control multiple autonomous systems at once in a endpoint and
   
 # Server side 
 
-The astro brains hold the job of receiving sensoring data from multiples clients and do all the heavy math.
+The astro brains hold the job of receiving sensoring data from multiples clients and do all the heavy math and real-time planning.
 
 # client side
 
