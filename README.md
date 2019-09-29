@@ -22,3 +22,7 @@ In the client size you have to collect the sensoring data and send to the server
 * Multiple client logged on server and sending sensoring data. 
 * Response delay with big loads and lower loads.
 * Custom kalman filter and other equations test.
+
+
+# Referencies 
+*  Multi-Robot Searching Algorithm Using Levy Flight and Artificial Potential Field - https://arxiv.org/abs/1108.5624 
