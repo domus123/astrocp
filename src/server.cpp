@@ -8,6 +8,8 @@
 #include <thread>
 #include <mutex>
 #include <vector> 
+#include <sstream>
+#include "types.hpp"
 
 /*REFERENCES: 
     *   socket.h documentation: https://pubs.opengroup.org/onlinepubs/009695399/basedefs/sys/socket.h.html
@@ -19,8 +21,7 @@
 #define BACKLOG 5
 #define MAX_THREADS 5
 
-std::mutex cout_mutex; 
-
+Brain brain("Starting server brain ... ");
 
 uint8_t start_server (const uint16_t port) {
     //FUTURE_WARNING: This function will be deprecated in the future 
@@ -40,7 +41,7 @@ uint8_t start_server (const uint16_t port) {
     }  
     std::cout << "OK" << std::endl;
     std::cout << "Setting socket ... ";
-
+    
     uint32_t opt; 
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) < 0 ){
         perror("Error while setting socket");
@@ -70,24 +71,25 @@ uint8_t start_server (const uint16_t port) {
 void server_thread (uint8_t const & new_connection) {
   /*Hold in each thread a new connection to the server */
   uint8_t & connection_socket = const_cast<uint8_t &>(new_connection);
-  std::mutex cout_lock; 
-
-  cout_lock.lock();
-  std::cout << "Connection stabilished to socket_id:" << static_cast<unsigned>(connection_socket) << std::endl;
-  cout_lock.unlock();
-
+  std::mutex cout_lock;
+  std::mutex brain_lock;
+  
   uint8_t status = 0;
   uint32_t val_read = 0; 
   unsigned i = 0;
   char local_buffer[1024] = {0};
-  char *ok = "OK";
 
+  Agent_data input_data;
+  std::stringstream input_stream; 
   if (status = read(connection_socket, local_buffer, 1024)) {
     try{
-      cout_lock.lock();
-      std::cout << "Readed: " << local_buffer << std::endl;
-      cout_lock.unlock();
-      send(connection_socket, ok, strlen(ok), 0);
+      std::string received(local_buffer);
+      Agent_data decoded_data = protocol_decoder(received);
+      brain.update(decoded_data);
+      brain.response(decoded_data);
+      std::string output_data = protocol_encoder(decoded_data);
+      std::cout << "Output_data: " << output_data << std::endl;
+      send(connection_socket, output_data.c_str(), strlen(output_data.c_str()), 0);
       
     }
     catch (std::exception &e) {
@@ -125,7 +127,6 @@ void run_server(const uint8_t server_fd) {
     else {
 	
     }
-    std::cout << "Trying to stabilish new connection to server " << std::endl;
     connection_stack.push_back(std::thread(server_thread, std::ref(new_socket)));
       
     for (auto& t : connection_stack){
