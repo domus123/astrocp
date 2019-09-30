@@ -58,8 +58,8 @@ int main(int argc, char *argv[])
 	} 
     
       uint8_t i = 0;
-      char output_buffer[1024] = {0};
-      char input_buffer[1024] = {0};
+      char output_buffer[4096] = {0};
+      char input_buffer[4096] = {0};
       std::vector<std::tuple<uint16_t, uint16_t>> sensored;
       /*Send data to server and get response from server*/
       Agent_data data, server_data;
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 	server_data = protocol_decoder(input);
 	agent.update_map(server_data.m_obstacles_position);
 	agent.print_map();
-	std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+	std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 	
       }
       catch (std::exception &e) {

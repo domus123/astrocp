@@ -58,7 +58,11 @@ void Brain::update (Agent_data & t_data) {
   /* Update the infos received by the agent and storage in the brain */
   uint16_t id = t_data.m_id;
   std::map<uint16_t, std::tuple<uint16_t, uint16_t>>::iterator it;  
-  
+
+  if (this->m_objects.size() > 10) {
+    std::cout << "Cleaning buffer" << std::endl;
+    this->m_objects.clear();
+  }
   it = this->m_agent_info.find(id);
   if (it == this->m_agent_info.end()) {
     this->m_agent_info.insert(it, {id, t_data.m_pos});
@@ -84,6 +88,7 @@ void Brain::update (Agent_data & t_data) {
       }
     }
   }
+  
 }
 
 void Brain::response(Agent_data &t_data) {
@@ -104,7 +109,7 @@ int main () {
   data.m_obstacles_position.emplace_back(std::make_tuple(21,30));
   data.m_obstacles_position.emplace_back(std::make_tuple(20,31));
   data.m_obstacles_size =2;
-  std::string encoded = protocol_encoder(data);
+  stshd::string encoded = protocol_encoder(data);
   std::cout << "Encoded: " << encoded << std::endl;
   protocol_decoder(encoded);
   teste.update(data);

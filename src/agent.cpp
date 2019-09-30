@@ -28,14 +28,14 @@ void Agent::read_map(std::string file){
 std::vector<std::tuple<uint16_t, uint16_t>> Agent::sensing() {
   /*This function is pure boring ... */
 
-  std::cout << "Starting at: " << std::get<0>(this->position) <<
-    std::get<1>(this->position) << std::endl;
-  
   int posx = std::get<0>(this->position);
   int posy = std::get<1>(this->position);
+  std::cout << "Starting at: " << posx << " " <<
+    posy << std::endl;
+  
   
   std::vector <std::tuple<uint16_t, uint16_t>> objects;
-  if (posx < 10) {
+  if (posx < 9) {
     /* Movendo para baixo */
     char c = this->map[posx + 1][posy];
     if (c == OBJECT) {
@@ -68,7 +68,7 @@ std::vector<std::tuple<uint16_t, uint16_t>> Agent::sensing() {
     this->can_move[1] = 0;
   }
   
-  if (posy < 20) {
+  if (posy < 19) {
     /*Movendo para direita */
     char c = this->map[posx][posy + 1];
     if (c == OBJECT) {
@@ -171,6 +171,12 @@ void Agent::print_map () {
 
 Agent::Agent(uint16_t id, uint16_t start_x, uint16_t start_y) {
   this->agent_id = id;
+  if (start_x < 0 || start_x >= 10 ){
+    start_x = 0;
+  }
+  if (start_y < 0 || start_y >= 20) {
+    start_y = 0;
+  }
   this->position = std::make_tuple(start_x, start_y);
   
   srand(time(0));

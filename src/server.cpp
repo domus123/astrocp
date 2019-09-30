@@ -77,11 +77,11 @@ void server_thread (uint8_t const & new_connection) {
   uint8_t status = 0;
   uint32_t val_read = 0; 
   unsigned i = 0;
-  char local_buffer[1024] = {0};
+  char local_buffer[4096] = {0};
 
   Agent_data input_data;
   std::stringstream input_stream; 
-  if (status = read(connection_socket, local_buffer, 1024)) {
+  if (status = read(connection_socket, local_buffer, 4096)) {
     try{
       std::string received(local_buffer);
       Agent_data decoded_data = protocol_decoder(received);
@@ -113,7 +113,7 @@ void run_server(const uint8_t server_fd) {
   uint8_t no_threads = 0;
   int16_t thread_counter = 0;
   struct sockaddr_in new_connection;
-  char input_buffer[1024] = {0};
+  char input_buffer[4096] = {0};
   std::cout << "Entering server loop " << std::endl;
     
   std::vector<std::thread> connection_stack;
