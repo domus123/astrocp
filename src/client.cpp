@@ -22,17 +22,11 @@ int main(int argc, char *argv[])
     uint16_t unique_id = strtol(argv[1], NULL, 16);
     int start_posx = strtol(argv[2], NULL, 16);
     int start_posy = strtol(argv[3], NULL, 16);
-    
-    /*
-    uint16_t id = strtol(unique_id, NULL, 16);
-    int start_posx = strtol(posx, NULL, 16);
-    int start_posy = strtol(posy, NULL, 16); 
-    */
+
     std::cout << "file: " << argv[4] << std::endl;
     std::cout << "Start: " << start_posx << " " << start_posy << std::endl;
     Agent agent(1, start_posx, start_posy);
     agent.read_map(argv[4]);
-    //agent.print_map();
 
     while (true) {
       /* Create socket connection */
@@ -80,7 +74,7 @@ int main(int argc, char *argv[])
 	send(sock , output_buffer, strlen(output_buffer) , 0);
 
 	/*Receiving and decoding data from server */
-	valread = read(sock , input_buffer, 1024);
+	valread = read(sock , input_buffer, 4096);
 	std::string input(input_buffer);
 	
 	server_data = protocol_decoder(input);

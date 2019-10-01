@@ -88,7 +88,7 @@ void server_thread (uint8_t const & new_connection) {
       brain.update(decoded_data);
       brain.response(decoded_data);
       std::string output_data = protocol_encoder(decoded_data);
-      std::cout << "Output_data: " << output_data << std::endl;
+      //std::cout << "Output_data: " << output_data << std::endl;
       send(connection_socket, output_data.c_str(), strlen(output_data.c_str()), 0);
       
     }
@@ -117,15 +117,22 @@ void run_server(const uint8_t server_fd) {
   std::cout << "Entering server loop " << std::endl;
     
   std::vector<std::thread> connection_stack;
-  connection_stack.reserve(20); 
+  connection_stack.reserve(20);
+  std::cout << "Trying to load state from previous connections ... ";
+  brain.load_state();
+  
   while (true) {
-      
     if ((new_socket = accept(server_fd, (struct sockaddr *) &new_connection, (socklen_t *) &new_connection)) < 0) {
       perror("Error while trying to get a new connection with the server "); 
       exit(EXIT_FAILURE);
     }
     else {
 	
+    }
+    if (connection_stack.size() == 20) {
+      connection_stack.clear();
+      std::cout << "Cleaning thread stack" << std::endl;
+      brain.save_state();
     }
     connection_stack.push_back(std::thread(server_thread, std::ref(new_socket)));
       
@@ -137,12 +144,18 @@ void run_server(const uint8_t server_fd) {
   }
 }
 
+void on_exit(void) {
+  std::cout << "Exiting ... Trying to save currenctly state" << std::endl;
+  brain.save_state();
+}
+
 
 int main (int argc, char const *argv[]) {
   uint8_t server_socket;
   /* Just call server with port 
    * e.g ./server 50000
    */
+  atexit(on_exit);
   if (argc == 2 )
     {
       try {

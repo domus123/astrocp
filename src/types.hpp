@@ -7,6 +7,7 @@
 #include <functional>
 #include <algorithm>
 #include <sstream>
+#include <fstream> 
 #include <cstring>
 
 #ifndef MANAGER_H_
@@ -26,14 +27,16 @@ Agent_data protocol_decoder(std::string t_data);
 
 /*Main manager data type */
 class Brain{
- public:
+public:
   Brain();
   Brain(std::string);
+  void save_state();
+  void load_state();
   void update(Agent_data &t_data);
   void print_info();
   void response(Agent_data &t_data);
   //void return_info();
- private:
+private:
   std::string m_operation_id;
   std::map<uint16_t, std::tuple<uint16_t, uint16_t>> m_agent_info;
   std::vector<std::tuple<uint16_t, uint16_t>> m_objects;

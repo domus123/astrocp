@@ -16,7 +16,7 @@ std::string protocol_encoder (Agent_data &t_data) {
     ss << std::to_string(std::get<0>(obj)) << " " << std::to_string(std::get<1>(obj)) << " ";
   }
   std::string output_data = ss.str();
-  std::cout << output_data << std::endl;
+  //std::cout << output_data << std::endl;
   return output_data; 
 }
 
@@ -30,7 +30,7 @@ Agent_data protocol_decoder(std::string t_data) {
   decoder >> aux >> sec_aux;
 
   result.m_pos = std::make_tuple(aux, sec_aux);
-  std::cout << std::to_string(std::get<1>(result.m_pos)) << std::endl;
+  //std::cout << std::to_string(std::get<1>(result.m_pos)) << std::endl;
   
   for (auto i = 0; i < result.m_obstacles_size; ++i) {
     decoder >> aux >> sec_aux;
@@ -53,6 +53,35 @@ Brain::Brain(std::string str) {
   this->m_objects.reserve(10);
   this->m_agents = 0;
 } 
+void Brain::save_state() {
+  /* Save server state */
+  std::ofstream output_file;
+  output_file.open("brain_state");
+  std::cout << "Saving state " << std::endl;
+  for (auto tuple : this->m_objects) {
+    output_file << std::get<0>(tuple) << " " ;
+    output_file << std::get<1>(tuple) << " ";
+  }
+  output_file.close();
+}
+
+void Brain::load_state() {
+
+  std::ifstream file_reader;
+  std::string line_reader;
+  file_reader.open("brain_state");
+  getline(file_reader, line_reader);
+
+  if (!line_reader.compare("") == 0) {
+    std::cout << "Found an older state" << std::endl;
+    std::stringstream ss(line_reader);
+    uint16_t valx, valy;
+    while (ss >> valx >> valy) {
+      this->m_objects.emplace_back(std::make_tuple(valx, valy));
+    }
+  }
+  file_reader.close();
+} 
 
 void Brain::update (Agent_data & t_data) {
   /* Update the infos received by the agent and storage in the brain */
@@ -71,7 +100,7 @@ void Brain::update (Agent_data & t_data) {
   else {
     std::cout << static_cast<unsigned>(it->first) << std::endl;
     it->second = t_data.m_pos;
-    std::cout << "Agent:" << static_cast<unsigned>(it->first) << "POS:" 
+    std::cout << "Agent: " << static_cast<unsigned>(it->first) << " POS:" 
 	      << " (" << static_cast<unsigned>(std::get<0>(it->second))
 	      <<","  << static_cast<unsigned>(std::get<1>(it->second)) << ")" << std::endl;
   }
@@ -95,25 +124,4 @@ void Brain::response(Agent_data &t_data) {
   /*Return with all the m_objects information */
   t_data.m_obstacles_position = this->m_objects;
   t_data.m_obstacles_size = this->m_objects.size();
-} 
-
-/* 
-int main () {
-  
-  Brain teste("This is my brain");
-  Agent_data data;
-  uint16_t i = 1;
-  data.m_id = 1;
-  data.m_pos = std::make_tuple(20, 30);
-  std::vector<std::tuple<uint16_t, uint16_t>> obst; 
-  data.m_obstacles_position.emplace_back(std::make_tuple(21,30));
-  data.m_obstacles_position.emplace_back(std::make_tuple(20,31));
-  data.m_obstacles_size =2;
-  stshd::string encoded = protocol_encoder(data);
-  std::cout << "Encoded: " << encoded << std::endl;
-  protocol_decoder(encoded);
-  teste.update(data);
-  teste.update(data);
-  return 0;
-} 
-*/
+}

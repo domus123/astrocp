@@ -1,0 +1,21 @@
+We dont't have an make file yet:
+
+Compiling
+
+& cd src/
+  g++ -std=c++11 -pthread types.cpp server.cpp -o server
+  g++ -std=c++11 -pthread types.cpp agent.cpp client.cpp -o client
+
+
+Creating container 
+& cp server ..
+& docker build -t astrocp .
+& docker run -p 42000:42000 astrocp
+
+Running client(on each terminal)
+
+
+./client 1 0 0 m1.txt
+./client 2 9 11 m2.txt
+./client 3 9 5 m3.txt
+./client 4 9 6 m4.txt
