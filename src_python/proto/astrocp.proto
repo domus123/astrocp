@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+message Data {
+    int32 map_id = 1;
+    repeated Position obstacles = 2;
+}
+message Resp {
+	bool status = 1;
+        repeated Position server_buffer = 2;
+}
+message Position {
+	int32 posy = 1;
+	int32 posx = 2;
+}
+
+message Table {
+	bool status = 1;
+	repeated Flood servers = 2;
+	
+}
+
+message Flood {
+	int32 map_id = 1;
+	int32 server_port = 2;
+	int32 successor = 3;
+}
+service Server{
+	rpc GetData(Data) returns (Resp) {}
+	rpc MapServers(Flood) returns(Table) {}
+	rpc FindSuccessor(Flood) returns (Flood) {}
+}
