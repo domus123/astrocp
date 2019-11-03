@@ -16,7 +16,7 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
         self.map_id = int(os.getenv("MAP_ID"))
         self.port = int(os.getenv("GRPC_PORT"))
         self.finger_table = {}
-        self.predecessor = (self.map_id, self.port ,self.default_successor)
+        self.predecessor = (0, 0 ,0)
         self.closer_successor = (self.default_successor, self.default_port, self.default_successor)
         self.m = m
         print(f"Starting stance for map_id: {self.map_id}")
@@ -30,70 +30,79 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
         if obj not in self.obstacles:
             print(f"Adding {obj} to obstacle list")
             self.obstacles.append(obj)
-
+            
+    def retransmit(self, data, port):
+        channel = grpc.insecure_channel(f"localhost:{port}")
+        stub = astrocp_pb2_grpc.ServerStub(channel)
+        response = stub.GetData(data)
+        return response        
+        
     def map_table(self, table):
         for val in table:
             self.finger_table[val.map_id] = val.server_port
         print(f"Finger_table: {self.finger_table}")
 
+    def fix_finger(self):
+        pass
+    
     def find_sucessor(self):
         """ Find the successor for self.map_id in the network"""
         flood = astrocp_pb2.Flood()
         flood.map_id = self.map_id
         flood.server_port = self.port
         
-        
         for i in range(1, m + 1):
             """Try to automatically find the successor"""
             port = self.port + i
-            print(f"Searching in port {port}")
+            #print(f"Searching in port {port}")
             channel = grpc.insecure_channel(f"localhost:{port}")
             stub = astrocp_pb2_grpc.ServerStub(channel)
-            print(f"My successor {self.closer_successor}")
+            #print(f"My successor {self.closer_successor}")
             flood.successor = self.closer_successor[0]
             #In this architecture, this try works as an if else. The exception will be throwed if no cluster at localhost:port was founded 
             try:
                 response = stub.FindSuccessor(flood)
                 print(f"RESPONSE: {response}")
+                if (response.map_id > self.map_id):
+                    self.finger_table[response.map_id] = {'port': response.server_port,
+                                                          'successor': response.successor}
                 self.closer_successor = (response.map_id, response.server_port, response.successor)
-                print(f"New successor {self.closer_successor}")
-                
-                    
-                print(f"Got an response of {response}")
+                #print(f"New successor {self.closer_successor}")
+                #print(f"Got an response of {response}")
             except Exception as e:
                 pass
-            
+        print("***********************************")
+        print(f"Finger_table: {self.finger_table}")
+        print(f"Successor: {self.closer_successor}")
+        print(f"Predecessor: {self.predecessor}")
+        print("***********************************")
+
+    
     def FindSuccessor(self, request, context):
         """ Try to find the next node on the clusters """
         #Se request.map_id < self.map_id temos que map_id pode ser um sucessor
         print(f"Just got an chorn request")
         flood = astrocp_pb2.Flood()
+        flood.map_id = self.map_id
+        flood.server_port = self.port
 
-        if (request.map_id < self.map_id):
-            flood.map_id = self.map_id
-            flood.server_port = self.port
-            flood.successor = self.closer_successor[0]
-
-            if (request.map_id < self.map_id):
-                #Add or update in the finger_table
-                self.finger_table[request.map_id] = {'port': request.server_port,
-                                                     'successor': request.successor }
-                print("REQUEST.MAP_ID >= SELF>PREDECESSOR[0]")
-                print(f"{request.map_id} >= {self.predecessor[0]}")
-                if (request.map_id >= self.predecessor[0]):
-                    self.predecessor = (request.map_id, request.server_port, request.successor)
-                    print("Just updated my predecessor with {self.predecessor}")
-                    
-                    
-                print(f"FINGER TABLE OF: {self.map_id}")
-                print(f"REQUEST: {request}")
-                print(f"{self.finger_table}")
-            else:
-                print("WILL NOT UPDATE FINGER TABLE")
+        #if (request.map_id < self.map_id):
         
-        else:
-            print("BIG FUCKING ELSE")
+        if (request.map_id > self.map_id):
+            #Add or update in the finger_table
+            self.finger_table[request.map_id] = {'port': request.server_port,
+                                                 'successor': request.successor }
 
+            if (request.map_id <= self.closer_successor[0]):
+                self.closer_successor = (request.map_id, request.server_port, request.successor)
+                print("Updating closer_successor: {self.closer_successor}")
+                print("BIG IF")
+            #n.closest_preceding_node from algorithm
+        else:
+            if (request.map_id >= self.predecessor[0]):
+                self.predecessor = (request.map_id, request.server_port, request.successor)
+                print(f"Just updated my predecessor with {self.predecessor}")
+        flood.successor = self.closer_successor[0]
         return flood 
             
             
@@ -115,8 +124,28 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
                 obst_lst.append(pos)
             response.status = True
             response.server_buffer.extend(obst_lst)
+
+        elif(map_id == self.closer_successor[0]):
+            port = self.closer_successor[1]
+            resp =self.retransmit(request, port)
+            return resp
+            
+        elif(map_id in self.finger_table.keys()):
+            port= self.finger_table[map_id]['port']
+            resp= self.retransmit(request, port)
+            return resp
+        
         else:
-            response.status = False
+            sorted_key = sorted(self.finger_table.keys(),reverse=True)
+            if sorted_key != []:
+                key = sorted_key[0]
+                print(f"Searching key on {key}")
+                port = self.finger_table[key]['port']
+                resp = self.retransmit(request, port)
+                return resp
+            
+            print("Not able to found")
+            
         return response
         
 if __name__ == '__main__':
@@ -141,6 +170,6 @@ if __name__ == '__main__':
     try :
         while True:
             server_servicer.find_sucessor()
-            time.sleep(5)
+            time.sleep(2)
     except KeyboardInterrupt:
         server.stop(0)
