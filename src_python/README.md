@@ -14,5 +14,14 @@
   ./make_proto
 
 ```
+## Running servers
+<p> On server folder </p>
+<p> Make sure to remove all containers previous running (docker ps) </p>
 
-## TODO SCRIPT
+```
+    chmod +x run_servers.py
+    ./run_servers N
+
+```
+
+## Running 
