@@ -113,7 +113,7 @@ class Client():
             i += 1
             self.send_data(obst)
             self.print_map()
-            time.sleep(2)
+            time.sleep(1)
         
         
         
