@@ -11,6 +11,8 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
     jumps = 2 #Maximum number of ports to look at
     default_successor = 1
     default_port = 52000
+    state_folder = '.obstacles'
+    number_of_states = 10
     
     def __init__(self, m):
         self.map_id = int(os.getenv("MAP_ID"))
@@ -27,9 +29,40 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
         params: 
         obst- List of obstacles with value (y, x)
         """
+        
         if obj not in self.obstacles:
             print(f"Adding {obj} to obstacle list")
             self.obstacles.append(obj)
+        
+
+    def save_state(self):
+        """
+        Snapshot of the data, save the state of self.obstacles in self.state_folder,
+        so if servers go down, we can laod the previous configuration
+        """
+        print("Saving currently state of obstacles ... ")
+        with open (self.state_folder, 'w') as f:
+            for elem in self.obstacles:
+                f.write(f"{elem[0]} {elem[1]}\n")
+        self.obstacles = [] 
+        f.close()
+        
+    def load_state(self):
+        """ 
+        Load obstacles previosly found in case the servers go down 
+        """
+        try:
+            with open (self.state_folder, 'r') as f:
+                for line in f:
+                    val_x ,val_y = line.split()
+                    tupple = (int(val_x), int(val_y))
+                    self.obstacles.append(tupple)
+            print(f"Found in memory: {self.obstacles}")
+        except FileNotFoundError:
+            print("No previous state found in memory")
+            self.obstacles = []
+        except Exception as e:
+            print(f"Exception found when loading data from memory {e}")    
             
     def retransmit(self, data, port):
         channel = grpc.insecure_channel(f"localhost:{port}")
@@ -54,10 +87,8 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
         for i in range(1, m + 1):
             """Try to automatically find the successor"""
             port = self.port + i
-            #print(f"Searching in port {port}")
             channel = grpc.insecure_channel(f"localhost:{port}")
             stub = astrocp_pb2_grpc.ServerStub(channel)
-            #print(f"My successor {self.closer_successor}")
             flood.successor = self.closer_successor[0]
             #In this architecture, this try works as an if else. The exception will be throwed if no cluster at localhost:port was founded 
             try:
@@ -67,8 +98,6 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
                     self.finger_table[response.map_id] = {'port': response.server_port,
                                                           'successor': response.successor}
                 self.closer_successor = (response.map_id, response.server_port, response.successor)
-                #print(f"New successor {self.closer_successor}")
-                #print(f"Got an response of {response}")
             except Exception as e:
                 pass
         print("***********************************")
@@ -107,7 +136,14 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
             
             
     def GetData(self, request, context):
-        #request = astrocp_pb2.Data()
+        """
+        Input point for the client data, if not belong to this node, send to next node or node in finger table. 
+        params: 
+           request: Request that come to the grpc call
+           context: GRPC context 
+        return : 
+          response: Response to client, sending the data from the objects that are in this map
+        """
         print("Got an request")
         map_id = int(request.map_id)
         response = astrocp_pb2.Resp()
@@ -122,6 +158,8 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
                 pos.posy = obst[0]
                 pos.posx = obst[1]
                 obst_lst.append(pos)
+            if len(self.obstacles) == self.number_of_states:
+                self.save_state()
             response.status = True
             response.server_buffer.extend(obst_lst)
 
@@ -143,13 +181,12 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
                 port = self.finger_table[key]['port']
                 resp = self.retransmit(request, port)
                 return resp
-            
             print("Not able to found")
+            
             
         return response
         
 if __name__ == '__main__':
-
     import sys
 
     if (len(sys.argv) == 2):
@@ -164,8 +201,11 @@ if __name__ == '__main__':
     
     print(f'Starting at port {port}')
     server.add_insecure_port(f'[::]:{port}')
+    server_servicer.load_state()
+    print(f"Obstacles: {server_servicer.obstacles}")
     server.start()
     server_servicer.find_sucessor()
+    
     #server_servicer.search_servers() #search servers one time before starting the loop
     try :
         while True:
