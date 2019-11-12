@@ -33,7 +33,7 @@
     ./run_clients N
 
 ```
-## Manuallg Running 
+## Manually Running 
 
 <p> Server need to be seted with two environment variable GRPC_PORT and MAP_ID </p>
 
