@@ -29,11 +29,10 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
         params: 
         obst- List of obstacles with value (y, x)
         """
-        
         if obj not in self.obstacles:
             print(f"Adding {obj} to obstacle list")
+            self.log_data(obj)
             self.obstacles.append(obj)
-        
 
     def save_state(self):
         """
@@ -63,7 +62,24 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
             self.obstacles = []
         except Exception as e:
             print(f"Exception found when loading data from memory {e}")    
-            
+
+    def log_data(self, pair):
+        """
+        Log the data in the file, this version is different from snapshot, since it log 1 entry 
+        
+        params: 
+           pair - A pair that was reveived from cliente connection
+        return:
+           None
+        """
+        if len(self.obstacles) <= self.number_of_states:
+            with open (self.state_folder, "a") as f:
+                f.write(f"{pair[0]} {pair[1]}\n")
+                f.close()
+        else:
+            print("Snap shot")
+            self.save_state()
+        
     def retransmit(self, data, port):
         channel = grpc.insecure_channel(f"localhost:{port}")
         stub = astrocp_pb2_grpc.ServerStub(channel)
@@ -109,7 +125,6 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
     
     def FindSuccessor(self, request, context):
         """ Try to find the next node on the clusters """
-        #Se request.map_id < self.map_id temos que map_id pode ser um sucessor
         print(f"Just got an chorn request")
         flood = astrocp_pb2.Flood()
         flood.map_id = self.map_id
@@ -144,23 +159,22 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
         return : 
           response: Response to client, sending the data from the objects that are in this map
         """
-        print("Got an request")
         map_id = int(request.map_id)
         response = astrocp_pb2.Resp()
         if (map_id == self.map_id):
             for position in request.obstacles:
                 posx = position.posx
                 posy = position.posy
-                self.manager( (posy, posx))
-            obst_lst = [] 
+                self.manager((posy, posx))
+            obst_lst = []
+            #Create the response list
             for obst in self.obstacles:
                 pos = astrocp_pb2.Position()
                 pos.posy = obst[0]
                 pos.posx = obst[1]
                 obst_lst.append(pos)
-            if len(self.obstacles) == self.number_of_states:
-                self.save_state()
             response.status = True
+            print(f"Obstacles: {self.obstacles}")
             response.server_buffer.extend(obst_lst)
 
         elif(map_id == self.closer_successor[0]):
@@ -182,7 +196,6 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
                 resp = self.retransmit(request, port)
                 return resp
             print("Not able to found")
-            
             
         return response
         
