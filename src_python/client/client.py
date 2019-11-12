@@ -125,8 +125,15 @@ if __name__ == '__main__':
     posy = int(sys.argv[3])
     posx = int(sys.argv[4])
     map_name = str(sys.argv[5])
+    if (len (sys.argv) == 7):
+        port = int(sys.argv[6])
+        print(f"Sending on port {port}")
+    else:
+        port = 52000
+    
     c = Client(agent_unique_id, map_id,
                posy, posx, map_name)
+    c.port = port
     c.run()
     
     

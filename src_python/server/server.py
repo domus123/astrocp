@@ -12,7 +12,7 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
     default_successor = 1
     default_port = 52000
     state_folder = '.obstacles'
-    number_of_states = 10
+    number_of_states = 15
     
     def __init__(self, m):
         self.map_id = int(os.getenv("MAP_ID"))
@@ -31,8 +31,8 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
         """
         if obj not in self.obstacles:
             print(f"Adding {obj} to obstacle list")
-            self.log_data(obj)
             self.obstacles.append(obj)
+            self.log_data(obj)
 
     def save_state(self):
         """
@@ -55,7 +55,8 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
                 for line in f:
                     val_x ,val_y = line.split()
                     tupple = (int(val_x), int(val_y))
-                    self.obstacles.append(tupple)
+                    if (tupple not in self.obstacles):
+                        self.obstacles.append(tupple)
             print(f"Found in memory: {self.obstacles}")
         except FileNotFoundError:
             print("No previous state found in memory")
@@ -72,13 +73,9 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
         return:
            None
         """
-        if len(self.obstacles) <= self.number_of_states:
-            with open (self.state_folder, "a") as f:
-                f.write(f"{pair[0]} {pair[1]}\n")
-                f.close()
-        else:
-            print("Snap shot")
-            self.save_state()
+        with open (self.state_folder, "a") as f:
+            f.write(f"{pair[0]} {pair[1]}\n")
+            f.close()
         
     def retransmit(self, data, port):
         channel = grpc.insecure_channel(f"localhost:{port}")
@@ -163,9 +160,10 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
         response = astrocp_pb2.Resp()
         if (map_id == self.map_id):
             for position in request.obstacles:
-                posx = position.posx
-                posy = position.posy
-                self.manager((posy, posx))
+                ## This loops is kinda of a design fault, when client send x, y inverted
+                pair = (position.posy, position.posx)
+                self.manager(pair)
+            
             obst_lst = []
             #Create the response list
             for obst in self.obstacles:
@@ -173,6 +171,12 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
                 pos.posy = obst[0]
                 pos.posx = obst[1]
                 obst_lst.append(pos)
+
+            #Check if should clear the buffer and take an snapshot
+            if len(self.obstacles) >= self.number_of_states:
+                print("Taking an SNAPSHOT")
+                self.save_state()
+                
             response.status = True
             print(f"Obstacles: {self.obstacles}")
             response.server_buffer.extend(obst_lst)
@@ -196,7 +200,7 @@ class ServerServicer(astrocp_pb2_grpc.ServerServicer):
                 resp = self.retransmit(request, port)
                 return resp
             print("Not able to found")
-            
+        
         return response
         
 if __name__ == '__main__':
